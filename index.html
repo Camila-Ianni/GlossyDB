@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glossy - Inventario</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500&display=swap" rel="stylesheet">
+
+  <!-- Firebase compat (API clásica, global "firebase" definido) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: #fce4ec;
+      color: #880e4f;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .logo {
+      font-size: 48px;
+      font-weight: 500;
+      margin-top: 40px;
+      text-align: center;
+    }
+    .login {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    input, button, textarea {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin: 10px;
+      font-size: 16px;
+    }
+    input[type="text"], input[type="number"] {
+      width: 200px;
+    }
+    .btn {
+      background-color: #f06292;
+      color: white;
+      cursor: pointer;
+    }
+    .app {
+      display: none;
+      height: 100vh;
+      display: flex;
+    }
+    .sidebar {
+      width: 70%;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .add-panel {
+      width: 30%;
+      background-color: #fff0f6;
+      padding: 20px;
+      border-left: 2px solid #f8bbd0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .product-list {
+      margin-top: 20px;
+    }
+    .product-item {
+      background: white;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+    .delete-btn {
+      background: none;
+      color: #c62828;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+    }
+    .modal img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .search-bar {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      background: #f8bbd0;
+      border-radius: 25px;
+      transition: width 0.4s ease;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .search-bar:hover {
+      width: 100%;
+    }
+    .search-bar input {
+      width: 100%;
+      height: 100%;
+      padding-left: 45px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      background: transparent;
+      color: #880e4f;
+      line-height: 50px;
+      vertical-align: middle;
+    }
+    .search-icon {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      font-size: 20px;
+      color: #880e4f;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">Glossy</div>
+
+  <div class="login">
+    <input type="password" id="password" placeholder="Contraseña" />
+    <button class="btn" id="loginBtn">Ingresar</button>
+  </div>
+
+  <div class="app">
+    <div class="sidebar">
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Buscar producto..." oninput="loadProducts()">
+      </div>
+      <h2>Inventario</h2>
+      <div class="product-list" id="productList"></div>
+    </div>
+
+    <div class="add-panel">
+      <h2>Agregar Producto</h2>
+      <input type="text" id="newProduct" placeholder="Nombre del producto" />
+      <input type="number" id="newStock" placeholder="Stock" />
+      <input type="file" id="newImage" accept="image/*" />
+      <textarea id="newDesc" placeholder="Descripción del producto"></textarea>
+      <button class="btn" onclick="addProduct()">Agregar</button>
+    </div>
+  </div>
+
+  <div class="modal" id="productModal">
+    <div class="modal-content" id="modalContent"></div>
+  </div>
+
+  <script>
+    // Inicialización Firebase con compat (global firebase)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDOLN_kiQ3ndRjE4EOeNkz_afZOX3P7E-k",
+      authDomain: "glossydb.firebaseapp.com",
+      projectId: "glossydb",
+      storageBucket: "glossydb.firebasestorage.app",
+      messagingSenderId: "64612066969",
+      appId: "1:64612066969:web:8eff603c2508021fe47a08",
+      measurementId: "G-K7957L49PR"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const PASSWORD = "Glossy";
+    let editingId = null;
+
+    function checkPassword() {
+      const input = document.getElementById("password").value;
+      if (input === PASSWORD) {
+        document.querySelector(".login").style.display = "none";
+        document.querySelector(".app").style.display = "flex";
+        loadProducts();
+      } else {
+        alert("Contraseña incorrecta");
+      }
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", checkPassword);
+
+    function addProduct() {
+      const name = document.getElementById("newProduct").value.trim();
+      const stock = parseInt(document.getElementById("newStock").value.trim());
+      const imageInput = document.getElementById("newImage");
+      const desc = document.getElementById("newDesc").value.trim();
+      if (!name || isNaN(stock)) return;
+
+      const product = { name, stock, image: "", desc };
+
+      if (imageInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          product.image = e.target.result;
+          saveToFirestore(product);
+        };
+        reader.readAsDataURL(imageInput.files[0]);
+      } else {
+        saveToFirestore(product);
+      }
+    }
+
+    function saveToFirestore(product) {
+      if (editingId) {
+        db.collection("productos").doc(editingId).set(product).then(() => {
+          editingId = null;
+          clearForm();
+          loadProducts();
+        });
+      } else {
+        db.collection("productos").add(product).then(() => {
+          clearForm();
+          loadProducts();
+        });
+      }
+    }
+
+    function clearForm() {
+      document.getElementById("newProduct").value = "";
+      document.getElementById("newStock").value = "";
+      document.getElementById("newImage").value = "";
+      document.getElementById("newDesc").value = "";
+    }
+
+    function deleteProduct(id) {
+      db.collection("productos").doc(id).delete().then(() => {
+        loadProducts();
+      });
+    }
+
+    function loadProducts() {
+      const container = document.getElementById("productList");
+      const search = document.getElementById("searchInput").value.toLowerCase();
+      container.innerHTML = "";
+
+      db.collection("productos").get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const prod = doc.data();
+          prod.id = doc.id;
+
+          if (prod.name.toLowerCase().includes(search)) {
+            const div = document.createElement("div");
+            div.className = "product-item";
+            div.innerHTML = `<span>${prod.name} (${prod.stock})</span>
+              <button class='delete-btn' onclick='event.stopPropagation(); deleteProduct("${prod.id}")'>x</button>`;
+            div.onclick = () => showProduct(prod);
+            container.appendChild(div);
+          }
+        });
+      });
+    }
+
+    function showProduct(prod) {
+      const modal = document.getElementById("productModal");
+      const content = document.getElementById("modalContent");
+      content.innerHTML = `
+        <h3>${prod.name}</h3>
+        ${prod.image ? `<img src="${prod.image}" alt="Imagen del producto" />` : ""}
+        <p><strong>Stock:</strong> ${prod.stock}</p>
+        <p>${prod.desc}</p>
+        <button class='btn' onclick='editProduct("${prod.id}", ${JSON.stringify(prod).replace(/'/g, "\\'")})'>Editar</button>
+        <button class='btn' onclick='closeModal()'>Cerrar</button>
+      `;
+      modal.style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("productModal").style.display = "none";
+    }
+
+    function editProduct(id, prod) {
+      document.getElementById("newProduct").value = prod.name;
+      document.getElementById("newStock").value = prod.stock;
+      document.getElementById("newDesc").value = prod.desc;
+      document.getElementById("newImage").value = "";
+      editingId = id;
+      closeModal();
+    }
+  </script>
+</body>
+</html>
