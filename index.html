@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,108 +6,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Glossy - Inventario</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <!-- Firebase compat (API clásica, global "firebase" definido) -->
+  <!-- Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore-compat.js"></script>
 
   <style>
     body {
-      margin: 0;
       font-family: 'Montserrat', sans-serif;
       background: #fce4ec;
       color: #880e4f;
-      height: 100vh;
-      overflow: hidden;
     }
     .logo {
       font-size: 48px;
       font-weight: 500;
-      margin-top: 40px;
+      margin-top: 20px;
       text-align: center;
     }
     .login {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
     }
-    input, button, textarea {
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      margin: 10px;
-      font-size: 16px;
-    }
-    input[type="text"], input[type="number"] {
-      width: 200px;
-    }
-    .btn {
+    .btn-pink {
       background-color: #f06292;
       color: white;
-      cursor: pointer;
     }
-    .app {
-      display: none;
-      height: 100vh;
-      display: flex;
-    }
-    .sidebar {
-      width: 70%;
-      padding: 20px;
-      overflow-y: auto;
-    }
-    .add-panel {
-      width: 30%;
-      background-color: #fff0f6;
-      padding: 20px;
-      border-left: 2px solid #f8bbd0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .product-list {
-      margin-top: 20px;
-    }
-    .product-item {
-      background: white;
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 6px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      cursor: pointer;
-    }
-    .delete-btn {
-      background: none;
-      color: #c62828;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.6);
-      justify-content: center;
-      align-items: center;
-    }
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      width: 90%;
-      max-width: 400px;
-    }
-    .modal img {
-      max-width: 100%;
-      border-radius: 8px;
-      margin-bottom: 10px;
+    .btn-pink:hover {
+      background-color: #ec407a;
     }
     .search-bar {
       position: relative;
@@ -131,7 +57,6 @@
       background: transparent;
       color: #880e4f;
       line-height: 50px;
-      vertical-align: middle;
     }
     .search-icon {
       position: absolute;
@@ -140,42 +65,60 @@
       font-size: 20px;
       color: #880e4f;
     }
+    .product-item {
+      background: white;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+    .modal-content img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <div class="logo">Glossy</div>
 
-  <div class="login">
-    <input type="password" id="password" placeholder="Contraseña" />
-    <button class="btn" id="loginBtn">Ingresar</button>
+  <div class="container login d-flex flex-column align-items-center justify-content-center">
+    <input type="password" id="password" placeholder="Contraseña" class="form-control w-50 mb-3" />
+    <button class="btn btn-pink" id="loginBtn">Ingresar</button>
   </div>
 
-  <div class="app">
-    <div class="sidebar">
-      <div class="search-bar">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="searchInput" placeholder="Buscar producto..." oninput="loadProducts()">
+  <div class="container-fluid app d-none">
+    <div class="row">
+      <div class="col-lg-8 col-md-7 p-3">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Buscar producto..." oninput="loadProducts()">
+        </div>
+        <h2>Inventario</h2>
+        <div id="productList"></div>
       </div>
-      <h2>Inventario</h2>
-      <div class="product-list" id="productList"></div>
-    </div>
-
-    <div class="add-panel">
-      <h2>Agregar Producto</h2>
-      <input type="text" id="newProduct" placeholder="Nombre del producto" />
-      <input type="number" id="newStock" placeholder="Stock" />
-      <input type="file" id="newImage" accept="image/*" />
-      <textarea id="newDesc" placeholder="Descripción del producto"></textarea>
-      <button class="btn" onclick="addProduct()">Agregar</button>
+      <div class="col-lg-4 col-md-5 bg-light p-3">
+        <h2>Agregar Producto</h2>
+        <input type="text" id="newProduct" class="form-control mb-2" placeholder="Nombre del producto" />
+        <input type="number" id="newStock" class="form-control mb-2" placeholder="Stock" />
+        <input type="file" id="newImage" class="form-control mb-2" accept="image/*" />
+        <textarea id="newDesc" class="form-control mb-2" placeholder="Descripción del producto"></textarea>
+        <button class="btn btn-pink w-100" onclick="addProduct()">Agregar</button>
+      </div>
     </div>
   </div>
 
-  <div class="modal" id="productModal">
-    <div class="modal-content" id="modalContent"></div>
+  <div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content p-3" id="modalContent"></div>
+    </div>
   </div>
 
   <script>
-    // Inicialización Firebase con compat (global firebase)
     const firebaseConfig = {
       apiKey: "AIzaSyDOLN_kiQ3ndRjE4EOeNkz_afZOX3P7E-k",
       authDomain: "glossydb.firebaseapp.com",
@@ -185,25 +128,22 @@
       appId: "1:64612066969:web:8eff603c2508021fe47a08",
       measurementId: "G-K7957L49PR"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const PASSWORD = "Glossy";
+    const PASSWORD = "Nala0354";
     let editingId = null;
 
-    function checkPassword() {
+    document.getElementById("loginBtn").addEventListener("click", () => {
       const input = document.getElementById("password").value;
       if (input === PASSWORD) {
-        document.querySelector(".login").style.display = "none";
-        document.querySelector(".app").style.display = "flex";
+        document.querySelector(".login").classList.add("d-none");
+        document.querySelector(".app").classList.remove("d-none");
         loadProducts();
       } else {
         alert("Contraseña incorrecta");
       }
-    }
-
-    document.getElementById("loginBtn").addEventListener("click", checkPassword);
+    });
 
     function addProduct() {
       const name = document.getElementById("newProduct").value.trim();
@@ -216,7 +156,7 @@
 
       if (imageInput.files[0]) {
         const reader = new FileReader();
-        reader.onload = function (e) {
+        reader.onload = e => {
           product.image = e.target.result;
           saveToFirestore(product);
         };
@@ -249,26 +189,22 @@
     }
 
     function deleteProduct(id) {
-      db.collection("productos").doc(id).delete().then(() => {
-        loadProducts();
-      });
+      db.collection("productos").doc(id).delete().then(loadProducts);
     }
 
     function loadProducts() {
       const container = document.getElementById("productList");
       const search = document.getElementById("searchInput").value.toLowerCase();
       container.innerHTML = "";
-
       db.collection("productos").get().then(snapshot => {
         snapshot.forEach(doc => {
           const prod = doc.data();
           prod.id = doc.id;
-
           if (prod.name.toLowerCase().includes(search)) {
             const div = document.createElement("div");
             div.className = "product-item";
             div.innerHTML = `<span>${prod.name} (${prod.stock})</span>
-              <button class='delete-btn' onclick='event.stopPropagation(); deleteProduct("${prod.id}")'>x</button>`;
+              <button class='btn btn-sm btn-outline-danger' onclick='event.stopPropagation(); deleteProduct("${prod.id}")'>x</button>`;
             div.onclick = () => showProduct(prod);
             container.appendChild(div);
           }
@@ -277,21 +213,20 @@
     }
 
     function showProduct(prod) {
-      const modal = document.getElementById("productModal");
       const content = document.getElementById("modalContent");
       content.innerHTML = `
-        <h3>${prod.name}</h3>
+        <h4>${prod.name}</h4>
         ${prod.image ? `<img src="${prod.image}" alt="Imagen del producto" />` : ""}
         <p><strong>Stock:</strong> ${prod.stock}</p>
         <p>${prod.desc}</p>
-        <button class='btn' onclick='editProduct("${prod.id}", ${JSON.stringify(prod).replace(/'/g, "\\'")})'>Editar</button>
-        <button class='btn' onclick='closeModal()'>Cerrar</button>
+        <button class='btn btn-pink me-2' onclick='editProduct("${prod.id}", ${JSON.stringify(prod).replace(/'/g, "\'")})'>Editar</button>
+        <button class='btn btn-secondary' onclick='closeModal()'>Cerrar</button>
       `;
-      modal.style.display = "flex";
+      new bootstrap.Modal(document.getElementById("productModal")).show();
     }
 
     function closeModal() {
-      document.getElementById("productModal").style.display = "none";
+      bootstrap.Modal.getInstance(document.getElementById("productModal")).hide();
     }
 
     function editProduct(id, prod) {
@@ -303,5 +238,7 @@
       closeModal();
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+>>>>>>> 07716f0 (Actualizo código GlossyDB)
