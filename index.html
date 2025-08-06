@@ -234,39 +234,50 @@
   });
 
   // Agregar o editar producto
-  function addProduct() {
-    const name = document.getElementById("newProduct").value.trim();
-    const stock = parseInt(document.getElementById("newStock").value.trim());
-    const cost = parseFloat(document.getElementById("newCost").value.trim());
-    const price = parseFloat(document.getElementById("newPrice").value.trim());
-    const imageInput = document.getElementById("newImage");
-    const desc = document.getElementById("newDesc").value.trim();
+  async function addProduct() {
+  const name = document.getElementById("newProduct").value.trim();
+  const stock = parseInt(document.getElementById("newStock").value.trim());
+  const cost = parseFloat(document.getElementById("newCost").value.trim());
+  const price = parseFloat(document.getElementById("newPrice").value.trim());
+  const imageInput = document.getElementById("newImage");
+  const desc = document.getElementById("newDesc").value.trim();
 
-    if (!name || isNaN(stock) || isNaN(cost) || isNaN(price)) {
-      alert("Completa todos los campos correctamente");
-      return;
-    }
+  if (!name || isNaN(stock) || isNaN(cost) || isNaN(price)) {
+    alert("Por favor completa todos los campos correctamente.");
+    return;
+  }
 
-    const product = { name, stock, cost, price, image: "", desc };
-
-    if (imageInput.files[0]) {
+  let imageUrl = "";
+  if (imageInput.files[0]) {
+    try {
       const file = imageInput.files[0];
       const storageRef = storage.ref(`productos/${Date.now()}-${file.name}`);
-
-      storageRef.put(file)
-        .then(snapshot => snapshot.ref.getDownloadURL())
-        .then(downloadURL => {
-          product.image = downloadURL;
-          return saveToFirestore(product);
-        })
-        .catch(error => {
-          console.error("Error al subir la imagen:", error);
-          alert("Error al subir la imagen.");
-        });
-    } else {
-      saveToFirestore(product);
+      const snapshot = await storageRef.put(file);
+      imageUrl = await snapshot.ref.getDownloadURL();
+    } catch (error) {
+      console.error("Error al subir la imagen:", error);
+      alert("Error al subir la imagen.");
+      return;
     }
   }
+
+  const product = { name, stock, cost, price, image: imageUrl, desc };
+
+  try {
+    if (editingId) {
+      await db.collection("productos").doc(editingId).set(product);
+      editingId = null;
+    } else {
+      await db.collection("productos").add(product);
+    }
+    clearForm();
+    // loadProducts() se llama automáticamente con onSnapshot
+  } catch (error) {
+    console.error("Error al guardar producto:", error);
+    alert("Error al guardar producto.");
+  }
+}
+
 
   function saveToFirestore(product) {
     if (editingId) {
@@ -384,8 +395,6 @@
 
 </script>
 
-
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
