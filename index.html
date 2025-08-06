@@ -198,7 +198,11 @@
     </div>
   </div>
   
-<script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+  import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-storage.js";
+
   const firebaseConfig = {
     apiKey: "AIzaSyDOLN_kiQ3ndRjE4EOeNkz_afZOX3P7E-k",
     authDomain: "glossydb.firebaseapp.com",
@@ -209,9 +213,9 @@
     measurementId: "G-K7957L49PR"
   };
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  const storage = firebase.storage();
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
 
   const PASSWORD = "Nala0354";
   let editingId = null;
@@ -248,12 +252,12 @@
     }
 
     let imageUrl = "";
-    if (imageInput.files.length > 0) {
+    if (imageInput.files[0]) {
       try {
         const file = imageInput.files[0];
-        const storageRef = storage.ref(`productos/${Date.now()}-${file.name}`);
-        const snapshot = await storageRef.put(file);
-        imageUrl = await snapshot.ref.getDownloadURL();
+        const storageRef = ref(storage, `productos/${Date.now()}-${file.name}`);
+        await uploadBytes(storageRef, file);
+        imageUrl = await getDownloadURL(storageRef);
       } catch (error) {
         console.error("Error al subir la imagen:", error);
         alert("Error al subir la imagen: " + error.message);
@@ -265,10 +269,10 @@
 
     try {
       if (editingId) {
-        await db.collection("productos").doc(editingId).set(product);
+        await setDoc(doc(db, "productos", editingId), product);
         editingId = null;
       } else {
-        await db.collection("productos").add(product);
+        await addDoc(collection(db, "productos"), product);
       }
       clearForm();
     } catch (error) {
@@ -286,8 +290,12 @@
     document.getElementById("newDesc").value = "";
   }
 
-  function deleteProduct(id) {
-    db.collection("productos").doc(id).delete().catch(console.error);
+  async function deleteProduct(id) {
+    try {
+      await deleteDoc(doc(db, "productos", id));
+    } catch (e) {
+      console.error("Error eliminando producto:", e);
+    }
   }
 
   function loadProducts() {
@@ -296,20 +304,20 @@
 
     if (unsubscribe) unsubscribe();
 
-    unsubscribe = db.collection("productos").onSnapshot(snapshot => {
+    unsubscribe = onSnapshot(collection(db, "productos"), snapshot => {
       container.innerHTML = "";
       const search = searchInput.value.toLowerCase();
 
-      snapshot.forEach(doc => {
-        const prod = doc.data();
-        prod.id = doc.id;
+      snapshot.forEach(docSnap => {
+        const prod = docSnap.data();
+        prod.id = docSnap.id;
 
         if (prod.name.toLowerCase().includes(search)) {
           const div = document.createElement("div");
           div.className = "product-item";
           div.innerHTML = `
             <span>${prod.name} (${prod.stock})</span>
-            <button class='btn btn-sm btn-outline-danger' onclick='event.stopPropagation(); deleteProduct("${prod.id}")'>x</button>
+            <button class='btn btn-sm btn-outline-danger' onclick='event.stopPropagation(); window.deleteProduct("${prod.id}")'>x</button>
           `;
           div.onclick = () => showProduct(prod);
           container.appendChild(div);
@@ -317,6 +325,8 @@
       });
     });
   }
+
+  window.deleteProduct = deleteProduct;
 
   function showProduct(prod) {
     const content = document.getElementById("modalContent");
@@ -329,17 +339,13 @@
       <p><strong>Precio:</strong> $${prod.price ?? "-"}</p>
       <p><strong>Ganancia:</strong> $${gain}</p>
       <p>${prod.desc}</p>
-      <button class='btn btn-pink me-2' onclick='editProduct("${prod.id}", ${JSON.stringify(prod).replace(/'/g, "\\'")})'>Editar</button>
+      <button class='btn btn-pink me-2' onclick='window.editProduct("${prod.id}", ${JSON.stringify(prod).replace(/'/g, "\\'")})'>Editar</button>
       <button class='btn btn-secondary' onclick='closeModal()'>Cerrar</button>
     `;
     new bootstrap.Modal(document.getElementById("productModal")).show();
   }
 
-  function closeModal() {
-    bootstrap.Modal.getInstance(document.getElementById("productModal")).hide();
-  }
-
-  function editProduct(id, prod) {
+  window.editProduct = function (id, prod) {
     document.getElementById("newProduct").value = prod.name;
     document.getElementById("newStock").value = prod.stock;
     document.getElementById("newCost").value = prod.cost ?? "";
@@ -348,9 +354,13 @@
     document.getElementById("newImage").value = "";
     editingId = id;
     closeModal();
+  };
+
+  function closeModal() {
+    bootstrap.Modal.getInstance(document.getElementById("productModal")).hide();
   }
 
-  // Stickers
+  // Pegamos los stickers como estaban
   const stickers = [
     { src: 'stickers/gato.png', top: '10%', left: '5%', angle: '-15deg' },
     { src: 'stickers/conejo.png', top: '20%', left: '75%', angle: '25deg' },
@@ -368,6 +378,9 @@
     img.style.setProperty("--angle", sticker.angle);
     stickersContainer.appendChild(img);
   });
+
+  // Esto lo necesitás para el botón "Agregar producto"
+  window.addProduct = addProduct;
 </script>
 
 
