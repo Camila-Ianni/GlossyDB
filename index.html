@@ -197,6 +197,7 @@
       <div class="modal-content p-3" id="modalContent"></div>
     </div>
   </div>
+  
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyDOLN_kiQ3ndRjE4EOeNkz_afZOX3P7E-k",
@@ -214,9 +215,8 @@
 
   const PASSWORD = "Nala0354";
   let editingId = null;
-  let unsubscribe = null; // para el listener de onSnapshot
+  let unsubscribe = null;
 
-  // Login
   document.getElementById("loginBtn").addEventListener("click", () => {
     const input = document.getElementById("password").value;
     if (input === PASSWORD) {
@@ -227,92 +227,53 @@
       alert("Contraseña incorrecta");
     }
   });
+
   document.getElementById("password").addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
       document.getElementById("loginBtn").click();
     }
   });
 
-  // Agregar o editar producto
- async function addProduct() {
-  const name = document.getElementById("newProduct").value.trim();
-  const stock = parseInt(document.getElementById("newStock").value.trim());
-  const cost = parseFloat(document.getElementById("newCost").value.trim());
-  const price = parseFloat(document.getElementById("newPrice").value.trim());
-  const imageInput = document.getElementById("newImage");
-  const desc = document.getElementById("newDesc").value.trim();
+  async function addProduct() {
+    const name = document.getElementById("newProduct").value.trim();
+    const stock = parseInt(document.getElementById("newStock").value.trim());
+    const cost = parseFloat(document.getElementById("newCost").value.trim());
+    const price = parseFloat(document.getElementById("newPrice").value.trim());
+    const imageInput = document.getElementById("newImage");
+    const desc = document.getElementById("newDesc").value.trim();
 
-  if (!name || isNaN(stock) || isNaN(cost) || isNaN(price)) {
-    alert("Por favor completa todos los campos correctamente.");
-    return;
-  }
-
-  let imageUrl = "";
-  if (imageInput.files[0]) {
-    try {
-      console.log("Subiendo imagen...");
-      const file = imageInput.files[0];
-      console.log("Archivo:", file);
-      const storageRef = storage.ref(`productos/${Date.now()}-${file.name}`);
-      const snapshot = await storageRef.put(file);
-      imageUrl = await snapshot.ref.getDownloadURL();
-      console.log("Imagen subida. URL:", imageUrl);
-    } catch (error) {
-      console.error("Error al subir la imagen:", error);
-      alert("Error al subir la imagen: " + error.message);
+    if (!name || isNaN(stock) || isNaN(cost) || isNaN(price)) {
+      alert("Por favor completa todos los campos correctamente.");
       return;
     }
-  }
 
-  const product = { name, stock, cost, price, image: imageUrl, desc };
-
-  try {
-    if (editingId) {
-      await db.collection("productos").doc(editingId).set(product);
-      editingId = null;
-    } else {
-      await db.collection("productos").add(product);
+    let imageUrl = "";
+    if (imageInput.files.length > 0) {
+      try {
+        const file = imageInput.files[0];
+        const storageRef = storage.ref(`productos/${Date.now()}-${file.name}`);
+        const snapshot = await storageRef.put(file);
+        imageUrl = await snapshot.ref.getDownloadURL();
+      } catch (error) {
+        console.error("Error al subir la imagen:", error);
+        alert("Error al subir la imagen: " + error.message);
+        return;
+      }
     }
-    clearForm();
-  } catch (error) {
-    console.error("Error al guardar producto:", error);
-    alert("Error al guardar producto.");
-  }
-}
 
+    const product = { name, stock, cost, price, image: imageUrl, desc };
 
-  const product = { name, stock, cost, price, image: imageUrl, desc };
-
-  try {
-    if (editingId) {
-      await db.collection("productos").doc(editingId).set(product);
-      editingId = null;
-    } else {
-      await db.collection("productos").add(product);
-    }
-    clearForm();
-    // loadProducts() se llama automáticamente con onSnapshot
-  } catch (error) {
-    console.error("Error al guardar producto:", error);
-    alert("Error al guardar producto.");
-  }
-
-
-
-  function saveToFirestore(product) {
-    if (editingId) {
-      return db.collection("productos").doc(editingId).set(product)
-        .then(() => {
-          editingId = null;
-          clearForm();
-        })
-        .catch(console.error);
-    } else {
-      return db.collection("productos").add(product)
-        .then(() => {
-          clearForm();
-        })
-        .catch(console.error);
+    try {
+      if (editingId) {
+        await db.collection("productos").doc(editingId).set(product);
+        editingId = null;
+      } else {
+        await db.collection("productos").add(product);
+      }
+      clearForm();
+    } catch (error) {
+      console.error("Error al guardar producto:", error);
+      alert("Error al guardar producto.");
     }
   }
 
@@ -329,14 +290,11 @@
     db.collection("productos").doc(id).delete().catch(console.error);
   }
 
-  // Carga productos y escucha cambios en tiempo real
   function loadProducts() {
     const container = document.getElementById("productList");
     const searchInput = document.getElementById("searchInput");
 
-    if (unsubscribe) {
-      unsubscribe(); // cancelar escucha previa para evitar duplicados
-    }
+    if (unsubscribe) unsubscribe();
 
     unsubscribe = db.collection("productos").onSnapshot(snapshot => {
       container.innerHTML = "";
@@ -360,7 +318,6 @@
     });
   }
 
-  // Mostrar detalles producto en modal
   function showProduct(prod) {
     const content = document.getElementById("modalContent");
     const gain = prod.price && prod.cost ? (prod.price - prod.cost).toFixed(2) : "-";
@@ -382,7 +339,6 @@
     bootstrap.Modal.getInstance(document.getElementById("productModal")).hide();
   }
 
-  // Preparar formulario para editar
   function editProduct(id, prod) {
     document.getElementById("newProduct").value = prod.name;
     document.getElementById("newStock").value = prod.stock;
@@ -394,7 +350,7 @@
     closeModal();
   }
 
-  // Stickers decorativos (sin cambios)
+  // Stickers
   const stickers = [
     { src: 'stickers/gato.png', top: '10%', left: '5%', angle: '-15deg' },
     { src: 'stickers/conejo.png', top: '20%', left: '75%', angle: '25deg' },
@@ -412,8 +368,8 @@
     img.style.setProperty("--angle", sticker.angle);
     stickersContainer.appendChild(img);
   });
-
 </script>
+
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
