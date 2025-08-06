@@ -128,7 +128,7 @@
   position: absolute;
   width: 120px; /* más grande */
   opacity: 0.8;
-  pointer-events: none;
+  pointer-events: none !important;
   z-index: 0;
   transform: rotate(var(--angle));
 }
@@ -146,6 +146,12 @@
   height: 100%;
   z-index: 0; /* stickers abajo del contenido */
   overflow: hidden;
+  pointer-events: none;
+}
+
+.container.login {
+  position: relative;
+  z-index: 1;
 }
 
 
