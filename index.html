@@ -252,17 +252,17 @@
     }
 
     let imageUrl = "";
-    if (imageInput.files[0]) {
-      try {
+    try {
+      if (imageInput.files && imageInput.files[0]) {
         const file = imageInput.files[0];
         const storageRef = ref(storage, `productos/${Date.now()}-${file.name}`);
         await uploadBytes(storageRef, file);
         imageUrl = await getDownloadURL(storageRef);
-      } catch (error) {
-        console.error("Error al subir la imagen:", error);
-        alert("Error al subir la imagen: " + error.message);
-        return;
       }
+    } catch (error) {
+      console.error("Error al subir la imagen:", error);
+      alert("Error al subir la imagen: " + error.message);
+      return;
     }
 
     const product = { name, stock, cost, price, image: imageUrl, desc };
@@ -360,7 +360,6 @@
     bootstrap.Modal.getInstance(document.getElementById("productModal")).hide();
   }
 
-  // Pegamos los stickers como estaban
   const stickers = [
     { src: 'stickers/gato.png', top: '10%', left: '5%', angle: '-15deg' },
     { src: 'stickers/conejo.png', top: '20%', left: '75%', angle: '25deg' },
@@ -379,9 +378,9 @@
     stickersContainer.appendChild(img);
   });
 
-  // Esto lo necesitás para el botón "Agregar producto"
   window.addProduct = addProduct;
 </script>
+
 
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
