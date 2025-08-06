@@ -234,7 +234,7 @@
   });
 
   // Agregar o editar producto
-  async function addProduct() {
+ async function addProduct() {
   const name = document.getElementById("newProduct").value.trim();
   const stock = parseInt(document.getElementById("newStock").value.trim());
   const cost = parseFloat(document.getElementById("newCost").value.trim());
@@ -250,16 +250,36 @@
   let imageUrl = "";
   if (imageInput.files[0]) {
     try {
+      console.log("Subiendo imagen...");
       const file = imageInput.files[0];
+      console.log("Archivo:", file);
       const storageRef = storage.ref(`productos/${Date.now()}-${file.name}`);
       const snapshot = await storageRef.put(file);
       imageUrl = await snapshot.ref.getDownloadURL();
+      console.log("Imagen subida. URL:", imageUrl);
     } catch (error) {
       console.error("Error al subir la imagen:", error);
-      alert("Error al subir la imagen.");
+      alert("Error al subir la imagen: " + error.message);
       return;
     }
   }
+
+  const product = { name, stock, cost, price, image: imageUrl, desc };
+
+  try {
+    if (editingId) {
+      await db.collection("productos").doc(editingId).set(product);
+      editingId = null;
+    } else {
+      await db.collection("productos").add(product);
+    }
+    clearForm();
+  } catch (error) {
+    console.error("Error al guardar producto:", error);
+    alert("Error al guardar producto.");
+  }
+}
+
 
   const product = { name, stock, cost, price, image: imageUrl, desc };
 
@@ -276,7 +296,7 @@
     console.error("Error al guardar producto:", error);
     alert("Error al guardar producto.");
   }
-}
+
 
 
   function saveToFirestore(product) {
