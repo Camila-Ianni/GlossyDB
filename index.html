@@ -206,8 +206,12 @@
       appId: "1:64612066969:web:8eff603c2508021fe47a08",
       measurementId: "G-K7957L49PR"
     };
+
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const storage = firebase.storage();
+
 
     const PASSWORD = "Nala0354";
     let editingId = null;
@@ -229,28 +233,37 @@
 });
 
 
-    function addProduct() {
-      const name = document.getElementById("newProduct").value.trim();
-      const stock = parseInt(document.getElementById("newStock").value.trim());
-      const cost = parseFloat(document.getElementById("newCost").value.trim());
-      const price = parseFloat(document.getElementById("newPrice").value.trim());
-      const imageInput = document.getElementById("newImage");
-      const desc = document.getElementById("newDesc").value.trim();
-      if (!name || isNaN(stock) || isNaN(cost) || isNaN(price)) return;
+  function addProduct() {
+  const name = document.getElementById("newProduct").value.trim();
+  const stock = parseInt(document.getElementById("newStock").value.trim());
+  const cost = parseFloat(document.getElementById("newCost").value.trim());
+  const price = parseFloat(document.getElementById("newPrice").value.trim());
+  const imageInput = document.getElementById("newImage");
+  const desc = document.getElementById("newDesc").value.trim();
 
-      const product = { name, stock, cost, price, image: "", desc };
+  if (!name || isNaN(stock) || isNaN(cost) || isNaN(price)) return;
 
-      if (imageInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => {
-          product.image = e.target.result;
-          saveToFirestore(product);
-        };
-        reader.readAsDataURL(imageInput.files[0]);
-      } else {
-        saveToFirestore(product);
-      }
-    }
+  const product = { name, stock, cost, price, image: "", desc };
+
+  if (imageInput.files[0]) {
+    const file = imageInput.files[0];
+    const storageRef = storage.ref(`productos/${Date.now()}-${file.name}`);
+    
+    // Subir archivo a Storage
+    storageRef.put(file).then(snapshot => {
+      return snapshot.ref.getDownloadURL(); // Obtener URL pública
+    }).then(downloadURL => {
+      product.image = downloadURL;
+      saveToFirestore(product);
+    }).catch(error => {
+      console.error("Error al subir la imagen:", error);
+      alert("Error al subir la imagen.");
+    });
+  } else {
+    saveToFirestore(product);
+  }
+}
+
 
     function saveToFirestore(product) {
       if (editingId) {
@@ -279,26 +292,28 @@
     function deleteProduct(id) {
       db.collection("productos").doc(id).delete().then(loadProducts);
     }
+      function loadProducts() {
+        const container = document.getElementById("productList");
 
-    function loadProducts() {
-      const container = document.getElementById("productList");
-      const search = document.getElementById("searchInput").value.toLowerCase();
-      container.innerHTML = "";
-      db.collection("productos").get().then(snapshot => {
-        snapshot.forEach(doc => {
-          const prod = doc.data();
-          prod.id = doc.id;
-          if (prod.name.toLowerCase().includes(search)) {
-            const div = document.createElement("div");
-            div.className = "product-item";
-            div.innerHTML = `<span>${prod.name} (${prod.stock})</span>
-              <button class='btn btn-sm btn-outline-danger' onclick='event.stopPropagation(); deleteProduct("${prod.id}")'>x</button>`;
-            div.onclick = () => showProduct(prod);
-            container.appendChild(div);
-          }
+        db.collection("productos").onSnapshot(snapshot => {
+          const search = document.getElementById("searchInput").value.toLowerCase();
+          container.innerHTML = "";
+
+          snapshot.forEach(doc => {
+            const prod = doc.data();
+            prod.id = doc.id;
+            if (prod.name.toLowerCase().includes(search)) {
+              const div = document.createElement("div");
+              div.className = "product-item";
+              div.innerHTML = `<span>${prod.name} (${prod.stock})</span>
+                <button class='btn btn-sm btn-outline-danger' onclick='event.stopPropagation(); deleteProduct("${prod.id}")'>x</button>`;
+              div.onclick = () => showProduct(prod);
+              container.appendChild(div);
+            }
+          });
         });
-      });
-    }
+      }
+
 
     function showProduct(prod) {
       const content = document.getElementById("modalContent");
